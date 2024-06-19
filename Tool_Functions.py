@@ -288,3 +288,80 @@ def power_RW_CV(n, B):
 
     return esperances, variances, test_statistics, test_alternative, power
 
+def power_RW_OOB_2n(n,B,m):
+        
+   np.random.seed(42)
+
+   esperances = []
+   variances = []
+   test_statistics = []
+   test_alternative = []
+   power = []
+
+   epsilon_train = np.random.normal(0, 1, n)
+   x_train = np.random.uniform(0, 5, n)
+
+   epsilon_test = np.random.normal(0, 1, m)
+   x_test = np.random.uniform(0, 5, m)
+
+   x = np.concatenate((x_train, x_test))
+   epsilon = np.concatenate((epsilon_train, epsilon_test)) 
+
+   beta1 = 2
+   beta2_values = np.linspace(0, 0.16, 9)
+
+   bootstrap_indices = np.random.choice(n, size=(B, n), replace=True) # bootstrapping
+
+   for beta2 in beta2_values:
+       
+       y = beta1 * x + beta2 * x**2 + epsilon # generation de données
+       db = []
+       
+       for bootstrap_index in bootstrap_indices:
+       
+          x_train = x[bootstrap_index]
+          y_train = beta1 * x_train + beta2 * x_train**2 + epsilon[bootstrap_index]
+
+          mask = np.ones(len(x), dtype=bool)
+          mask[bootstrap_index] = False
+
+          x_test = x[mask]
+          y_test = y[mask]
+
+          x_train_reshape = x_train.reshape(-1, 1)
+          x_test_reshape = x_test.reshape(-1,1)
+
+          model_a1 = LinearRegression().fit(x_train_reshape, y_train) # Modèle linéaire
+          y_pred_a1 = model_a1.predict(x_test_reshape.reshape(-1,1))
+          p1b = mean_squared_error(y_test, y_pred_a1)
+
+          x_train_quad = np.column_stack((x_train_reshape, x_train**2))
+          x_test_quad = np.column_stack((x_test_reshape, x_test**2))
+
+
+          model_a2 = LinearRegression().fit(x_train_quad, y_train)
+          y_pred_a2 = model_a2.predict(x_test_quad)
+          p2b = mean_squared_error(y_test, y_pred_a2)
+
+          db.append(p1b - p2b)  # Différence des moyennes de performance sur chaque bootstrap
+
+       # Fin du boostrapping
+
+       d_barre = sum(db)/B # Converge p.s vers l'espérance mu
+
+       var = np.var(db, ddof=1)
+       test_stat = (B**0.5)*d_barre/np.sqrt(var) # Statistique pour l'hypothèse nulle
+
+       delta = d_barre
+       student = stats.t.ppf(0.95, df=B-1)
+       mu = (B ** 0.5)*delta/np.sqrt(var)
+       test_alt = student - mu
+       puissance = 1 - stats.norm.cdf(student - mu, 0, 1)
+       
+       esperances.append(d_barre)
+       variances.append(var)
+       test_statistics.append(test_stat)
+       test_alternative.append(test_alt)
+       power.append(puissance)
+
+   return esperances, variances, test_statistics, test_alternative, power
