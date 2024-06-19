@@ -288,6 +288,8 @@ def power_RW_CV(n, B):
 
     return esperances, variances, test_statistics, test_alternative, power
 
+
+
 def power_RW_OOB_2n(n,B,m):
         
    np.random.seed(42)
