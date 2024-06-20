@@ -4,7 +4,6 @@ import sys
 def install(package):
     subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
-# List of common Python packages
 common_packages = [
     "numpy",
     "pandas",
@@ -23,7 +22,6 @@ common_packages = [
     "pillow"
 ]
 
-# Additional packages for machine learning and data science
 ml_packages = [
     "tensorflow",
     "keras",
